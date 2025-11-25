@@ -1,0 +1,57 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool:
+  vmImage: 'windows-latest'
+
+stages:
+- stage: BuildAndDeploy
+  displayName: 'Build, Deploy & Run Tests'
+  jobs:
+  - job: RunTestAutomation
+    steps:
+    - checkout: self
+
+    # --- FIX 1: Add the Install Step ---
+    - task: UiPathInstallPlatform@4
+      displayName: '0. Install UiPath Platform'
+
+    # --- FIX 2: Updated to @4 ---
+    - task: UiPathPack@4
+      displayName: '1. Package UiPath Project'
+      inputs:
+        version: '1.0.$(Build.BuildId)'      # Changed to use Build ID for unique versions
+        projectJsonPath: 'project.json'
+        outputPath: '$(Build.ArtifactStagingDirectory)/output'
+        outputType: 'Process'
+        # orchestratorConnection: 'Azure_Orchestrator_Connection' # Optional in Pack step usually, but you can keep if needed
+
+    - task: UiPathDeploy@4
+      displayName: '2. Deploy Package to Orchestrator'
+      inputs:
+        orchestratorConnection: 'Azure_Orchestrator_Connection' # MAKE SURE THIS MATCHES YOUR SETTINGS
+        packagesPath: '$(Build.ArtifactStagingDirectory)/output'
+        folderName: 'Testing'                 # Folder must exist in Orchestrator
+        actionIfProcessExists: 'Upgrade'      # 'Upgrade' is usually safer than 'Update'
+
+    - task: UiPathTest@4
+      displayName: '3. Run Automated Test Set'
+      inputs:
+        orchestratorConnection: 'Azure_Orchestrator_Connection'
+        testTarget: 'TestSet'                 # Updated input name for v4
+        testSetName: 'CICD_Azure_TestSet'           # Test Set must exist in Orchestrator
+        folderName: 'Testing'
+        testReportDestination: '$(Build.ArtifactStagingDirectory)/TestResults/results.xml'
+
+    - task: PublishTestResults@2
+      displayName: '4. Publish Test Results to Azure'
+      condition: succeededOrFailed()          # Ensures results publish even if tests fail
+      inputs:
+        testResultsFormat: 'JUnit'
+        testResultsFiles: '$(Build.ArtifactStagingDirectory)/TestResults/results.xml'
+        testRunTitle: 'UiPath Automated Tests - $(Build.BuildNumber)'
