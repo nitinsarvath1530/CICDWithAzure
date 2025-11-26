@@ -6,8 +6,7 @@
 trigger:
 - main
 
-pool:
-  Nitin
+pool: 'NITIN'
 
 stages:
 - stage: BuildAndDeploy
