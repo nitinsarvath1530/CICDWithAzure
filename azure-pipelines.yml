@@ -29,14 +29,14 @@ stages:
           version: '1.0.$(Build.BuildId)'
           projectJsonPath: '$(Build.SourcesDirectory)\project.json'
           outputType: 'Tests'   # Using 'Tests' since you are running automation testing
-          orchestratorConnection: 'Azure_Orchestrator_Connection'
+          orchestratorConnection: 'CICD_ConnectionOrch'
           outputPath: '$(Build.ArtifactStagingDirectory)'
 
       # Task 3: Deploy (Using @6)
       - task: UiPathDeploy@6
         displayName: '3. Deploy to Orchestrator'
         inputs:
-          orchestratorConnection: 'Azure_Orchestrator_Connection'
+          orchestratorConnection: 'CICD_ConnectionOrch'
           packagesPath: '$(Build.ArtifactStagingDirectory)\*.nupkg'
           folderName: 'Testing'
           traceLevel: 'Information'
@@ -46,7 +46,7 @@ stages:
         displayName: '4. Run Test Set'
         inputs:
           testTarget: 'TestSet'
-          orchestratorConnection: 'Azure_Orchestrator_Connection'
+          orchestratorConnection: 'CICD_ConnectionOrch'
           testSet: 'CICD_Azure_TestSet'
           folderName: 'Testing'
           testReportDestination: '$(Build.ArtifactStagingDirectory)\test-results.xml'
