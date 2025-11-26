@@ -15,43 +15,41 @@ stages:
   jobs:
   - job: RunTestAutomation
     steps:
-    - checkout: self
+      - checkout: self
 
-    # --- FIX 1: Add the Install Step ---
-    - task: UiPathInstallPlatform@4
-      displayName: '0. Install UiPath Platform'
+      # Task 1: Install Platform (Using @6 for v6 Extension)
+      - task: UiPathInstallPlatform@6
+        displayName: '1. Install UiPath Platform'
+        # We removed the specific cliVersion so it defaults to the latest compatible one automatically.
 
-    # --- FIX 2: Updated to @4 ---
-    - task: UiPathPack@4
-      displayName: '1. Package UiPath Project'
-      inputs:
-        version: '1.0.$(Build.BuildId)'      # Changed to use Build ID for unique versions
-        projectJsonPath: 'project.json'
-        outputPath: '$(Build.ArtifactStagingDirectory)/output'
-        outputType: 'Process'
-        # orchestratorConnection: 'Azure_Orchestrator_Connection' # Optional in Pack step usually, but you can keep if needed
+      # Task 2: Pack (Using @6)
+      - task: UiPathPack@6
+        displayName: '2. Pack UiPath Project'
+        inputs:
+          versionType: 'ManualVersion'
+          version: '1.0.$(Build.BuildId)'
+          projectJsonPath: '$(Build.SourcesDirectory)\project.json'
+          outputType: 'Tests'   # Using 'Tests' since you are running automation testing
+          orchestratorConnection: 'Azure_Orchestrator_Connection'
+          outputPath: '$(Build.ArtifactStagingDirectory)'
 
-    - task: UiPathDeploy@4
-      displayName: '2. Deploy Package to Orchestrator'
-      inputs:
-        orchestratorConnection: 'Azure_Orchestrator_Connection' # MAKE SURE THIS MATCHES YOUR SETTINGS
-        packagesPath: '$(Build.ArtifactStagingDirectory)/output'
-        folderName: 'Testing'                 # Folder must exist in Orchestrator
-        actionIfProcessExists: 'Upgrade'      # 'Upgrade' is usually safer than 'Update'
+      # Task 3: Deploy (Using @6)
+      - task: UiPathDeploy@6
+        displayName: '3. Deploy to Orchestrator'
+        inputs:
+          orchestratorConnection: 'Azure_Orchestrator_Connection'
+          packagesPath: '$(Build.ArtifactStagingDirectory)\*.nupkg'
+          folderName: 'Testing'
+          traceLevel: 'Information'
 
-    - task: UiPathTest@4
-      displayName: '3. Run Automated Test Set'
-      inputs:
-        orchestratorConnection: 'Azure_Orchestrator_Connection'
-        testTarget: 'TestSet'                 # Updated input name for v4
-        testSetName: 'CICD_Azure_TestSet'           # Test Set must exist in Orchestrator
-        folderName: 'Testing'
-        testReportDestination: '$(Build.ArtifactStagingDirectory)/TestResults/results.xml'
-
-    - task: PublishTestResults@2
-      displayName: '4. Publish Test Results to Azure'
-      condition: succeededOrFailed()          # Ensures results publish even if tests fail
-      inputs:
-        testResultsFormat: 'JUnit'
-        testResultsFiles: '$(Build.ArtifactStagingDirectory)/TestResults/results.xml'
-        testRunTitle: 'UiPath Automated Tests - $(Build.BuildNumber)'
+      # Task 4: Test (Using @6)
+      - task: UiPathTest@6
+        displayName: '4. Run Test Set'
+        inputs:
+          testTarget: 'TestSet'
+          orchestratorConnection: 'Azure_Orchestrator_Connection'
+          testSet: 'CICD_Azure_TestSet'
+          folderName: 'Testing'
+          testReportDestination: '$(Build.ArtifactStagingDirectory)\test-results.xml'
+          traceLevel: 'Information'
+          attachRobotLogs: true
