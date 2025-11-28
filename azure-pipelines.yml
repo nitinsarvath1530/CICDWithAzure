@@ -18,34 +18,32 @@ stages:
     steps:
       - checkout: self
 
-      # Task 1: Install Platform (Using @6 for v6 Extension)
+      # Task 1: Install Platform
       - task: UiPathInstallPlatform@6
         displayName: '1. Install UiPath Platform'
-        # We removed the specific cliVersion so it defaults to the latest compatible one automatically.
 
-      # Task 2: Pack (Using @6)
+      # Task 2: Pack
       - task: UiPathPack@6
         displayName: '2. Pack UiPath Project'
         inputs:
           versionType: 'ManualVersion'
           version: '$(Build.BuildNumber)'
           projectJsonPath: '$(Build.SourcesDirectory)\project.json'
-          outputType: 'Tests'   # Using 'Tests' since you are running automation testing
+          outputType: 'Tests'
           orchestratorConnection: 'CICD_ConnectionOrch'
           outputPath: '$(Build.ArtifactStagingDirectory)'
 
-
-      # Task 3: Deploy (Corrected task for Packages)
+      # Task 3: Deploy - CORRECTED
       - task: UiPathDeploy@6
         displayName: '3. Deploy to Orchestrator'
         inputs:
           orchestratorConnection: 'CICD_ConnectionOrch'
-          packageName: 'CICD_AzureOrch'
-          packageVersion: '$(Build.BuildNumber)'
+          packagesPath: '$(Build.ArtifactStagingDirectory)'  # Changed from packageName
           folderName: 'Testing'
+          entryPoints: 'Main.xaml'  # Added entry point
           traceLevel: 'Information'
 
-      # Task 4: Test (Using @6)
+      # Task 4: Test
       - task: UiPathTest@6
         displayName: '4. Run Test Set'
         inputs:
@@ -56,5 +54,14 @@ stages:
           testReportDestination: '$(Build.ArtifactStagingDirectory)\test-results.xml'
           traceLevel: 'Information'
           attachRobotLogs: true
+
+      # Task 5: Publish Test Results (Optional but recommended)
+      - task: PublishTestResults@2
+        displayName: '5. Publish Test Results'
+        condition: always()
+        inputs:
+          testResultsFormat: 'JUnit'
+          testResultsFiles: '$(Build.ArtifactStagingDirectory)\test-results.xml'
+          failTaskOnFailedTests: true
 
           
