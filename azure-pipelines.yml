@@ -3,6 +3,8 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
+name: 1.0.$(Rev:r)
+
 trigger:
 - main
 
@@ -26,19 +28,21 @@ stages:
         displayName: '2. Pack UiPath Project'
         inputs:
           versionType: 'ManualVersion'
-          version: '1.0.$(Build.BuildId)'
+          version: '$(Build.BuildNumber)'
           projectJsonPath: '$(Build.SourcesDirectory)\project.json'
           outputType: 'Tests'   # Using 'Tests' since you are running automation testing
           orchestratorConnection: 'CICD_ConnectionOrch'
           outputPath: '$(Build.ArtifactStagingDirectory)'
 
       # Task 3: Deploy (Using @6)
-      - task: UiPathDeploy@6
+      - task: UiPathSolutionDeploy@6
         displayName: '3. Deploy to Orchestrator'
         inputs:
           orchestratorConnection: 'CICD_ConnectionOrch'
-          packagesPath: '$(Build.ArtifactStagingDirectory)\*.nupkg'
-          folderName: 'Testing'
+          packageName: 'CICD_AzureOrch'
+          packageVersion: '$(Build.BuildNumber)'
+          deploymentName: '3. Deploy to Orchestrator'
+          deploymentFolderName: 'Testing'
           traceLevel: 'Information'
 
       # Task 4: Test (Using @6)
@@ -52,3 +56,5 @@ stages:
           testReportDestination: '$(Build.ArtifactStagingDirectory)\test-results.xml'
           traceLevel: 'Information'
           attachRobotLogs: true
+
+          
