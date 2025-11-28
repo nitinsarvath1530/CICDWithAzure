@@ -34,15 +34,15 @@ stages:
           orchestratorConnection: 'CICD_ConnectionOrch'
           outputPath: '$(Build.ArtifactStagingDirectory)'
 
-      # Task 3: Deploy (Using @6)
-      - task: UiPathSolutionDeploy@6
+
+      # Task 3: Deploy (Corrected task for Packages)
+      - task: UiPathDeploy@6
         displayName: '3. Deploy to Orchestrator'
         inputs:
           orchestratorConnection: 'CICD_ConnectionOrch'
           packageName: 'CICD_AzureOrch'
           packageVersion: '$(Build.BuildNumber)'
-          deploymentName: '3. Deploy to Orchestrator'
-          deploymentFolderName: 'Testing'
+          folderName: 'Testing'
           traceLevel: 'Information'
 
       # Task 4: Test (Using @6)
