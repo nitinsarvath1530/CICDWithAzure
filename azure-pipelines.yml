@@ -21,6 +21,7 @@ stages:
       # Task 1: Install Platform
       - task: UiPathInstallPlatform@6
         displayName: '1. Install UiPath Platform'
+        # Optional: Add inputs here if you need a specific version, but usually defaults are fine.
 
       # Task 2: Pack
       - task: UiPathPack@6
@@ -28,9 +29,12 @@ stages:
         inputs:
           versionType: 'ManualVersion'
           version: '$(Build.BuildNumber)'
-          projectJsonPath: '$(Build.SourcesDirectory)\project.json'
-          outputType: 'Tests'
+          # IMPORTANT: Verify this path is correct relative to your repository root
+          projectJsonPath: '$(Build.SourcesDirectory)\project.json' 
+          # Ensure outputType matches your project type (often Process or Tests)
+          outputType: 'Tests' 
           orchestratorConnection: 'CICD_ConnectionOrch'
+          # Store the package in the staging directory
           outputPath: '$(Build.ArtifactStagingDirectory)'
 
       # Task 3: Deploy - CORRECTED
@@ -38,9 +42,13 @@ stages:
         displayName: '3. Deploy to Orchestrator'
         inputs:
           orchestratorConnection: 'CICD_ConnectionOrch'
-          packagesPath: '$(Build.ArtifactStagingDirectory)'  # Changed from packageName
+          # Input is the directory where the package(s) are located. 
+          # This should match the outputPath from UiPathPack.
+          packagesPath: '$(Build.ArtifactStagingDirectory)' 
+          # CRITICAL: This must be an exact, case-sensitive folder name in Orchestrator 
           folderName: 'Testing'
-          entryPoints: 'Main.xaml'  # Added entry point
+          # CRITICAL: This input is required for deploying a process (Main.xaml is the default)
+          entryPoints: 'Main.xaml' 
           traceLevel: 'Information'
 
       # Task 4: Test
@@ -49,7 +57,8 @@ stages:
         inputs:
           testTarget: 'TestSet'
           orchestratorConnection: 'CICD_ConnectionOrch'
-          testSet: 'CICD_Azure_TestSet'
+          # CRITICAL: This must be an exact, case-sensitive Test Set name in Orchestrator
+          testSet: 'CICD_Azure_TestSet' 
           folderName: 'Testing'
           testReportDestination: '$(Build.ArtifactStagingDirectory)\test-results.xml'
           traceLevel: 'Information'
@@ -58,10 +67,10 @@ stages:
       # Task 5: Publish Test Results (Optional but recommended)
       - task: PublishTestResults@2
         displayName: '5. Publish Test Results'
-        condition: always()
+        # Ensures this step always runs, even if tests fail, so you see the results
+        condition: always() 
         inputs:
           testResultsFormat: 'JUnit'
           testResultsFiles: '$(Build.ArtifactStagingDirectory)\test-results.xml'
           failTaskOnFailedTests: true
-
           
